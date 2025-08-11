@@ -10,9 +10,8 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.io.InputStreamReader
 
-// El estado se simplifica. Ya no necesitamos 'AppState'.
 data class UiState(
-    val isListening: Boolean = false, // True mientras esperamos el resultado de Google
+    val isListening: Boolean = false,
     val palabraReconocida: String = "...",
     val codigoEncontrado: String = "...",
     val errorMessage: String? = null
@@ -23,20 +22,19 @@ class MainViewModel(private val context: Context) : ViewModel() {
     private val _uiState = mutableStateOf(UiState())
     val uiState: State<UiState> = _uiState
 
-    // El mapa de equivalencias sigue siendo crucial
     private val equivalencias: Map<String, String> by lazy { cargarEquivalencias() }
 
-    // Esta función se llama cuando el usuario pulsa el botón
+    // El usuario pulsó el botón 👺👺👺
     fun startListening() {
         if (uiState.value.isListening) return
         _uiState.value = _uiState.value.copy(
             isListening = true,
-            palabraReconocida = "...", // Limpiamos resultados anteriores
+            palabraReconocida = "...",
             codigoEncontrado = "..."
         )
     }
 
-    // Esta función se llama desde la MainActivity con el resultado de Google
+    // Esta función se llama desde la MainActivity con el resultado de Google ❤️
     fun processSpeechResult(results: List<String>?) {
         if (results.isNullOrEmpty()) {
             _uiState.value = _uiState.value.copy(
@@ -47,6 +45,7 @@ class MainViewModel(private val context: Context) : ViewModel() {
         }
 
         // El resultado de Google es una lista de posibles transcripciones, la primera es la más probable.
+        // Que listillos
         val textoReconocido = results[0].lowercase()
         var palabraEncontrada: String? = null
         var codigoEncontrado: String? = null
@@ -54,19 +53,19 @@ class MainViewModel(private val context: Context) : ViewModel() {
         Log.d("SpeechDebug", "Texto recibido de Google: '$textoReconocido'")
         Log.d("SpeechDebug", "Claves en el mapa: ${equivalencias.keys}")
 
-        // Buscamos si alguna de nuestras ciudades clave está en el texto reconocido
         for (ciudad in equivalencias.keys) {
             if (textoReconocido.contains(ciudad)) {
                 palabraEncontrada = ciudad
                 codigoEncontrado = equivalencias[ciudad]
-                break // Encontramos la primera y salimos del bucle
+                break
             }
         }
 
         if (palabraEncontrada != null && codigoEncontrado != null) {
             _uiState.value = _uiState.value.copy(
                 isListening = false,
-                palabraReconocida = palabraEncontrada.replaceFirstChar { it.titlecase() }, // Ponemos la primera en mayúscula
+                // La primera en mayúscula para evitar el error loco aquel
+                palabraReconocida = palabraEncontrada.replaceFirstChar { it.titlecase() },
                 codigoEncontrado = codigoEncontrado
             )
         } else {

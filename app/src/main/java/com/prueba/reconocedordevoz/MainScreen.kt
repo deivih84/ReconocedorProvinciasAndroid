@@ -2,6 +2,7 @@ package com.prueba.reconocedordevoz
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,7 +51,7 @@ fun MainScreen(
     }
 }
 
-// Cambiamos un poco el ListenButton para que solo dependa de un booleano
+// Solo depende de un booleano, on god🌹
 @Composable
 fun ListenButton(isListening: Boolean, onClick: () -> Unit) {
     Button(
@@ -67,7 +68,6 @@ fun ListenButton(isListening: Boolean, onClick: () -> Unit) {
     }
 }
 
-// El resto de Composables (Header, ResultDisplay, StatusText) no necesitan cambios.
 @Composable
 fun Header() {
     Text(
@@ -97,7 +97,11 @@ fun ResultDisplay(palabra: String, codigo: String) {
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider( // Horizontal Divider god
+                modifier = Modifier.padding(vertical = 8.dp),
+                thickness = DividerDefaults.Thickness,
+                color = DividerDefaults.color
+            )
             Text(text = "Código Asociado:", style = MaterialTheme.typography.titleMedium)
             Text(
                 text = codigo,
