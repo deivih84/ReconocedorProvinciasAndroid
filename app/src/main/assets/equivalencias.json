@@ -1,0 +1,56 @@
+{
+  "ubicaciones": [
+    {
+      "nombre": "Ávila",
+      "codigo": "00001"
+    },
+    {
+      "nombre": "Burgos",
+      "codigo": "00002"
+    },
+    {
+      "nombre": "León",
+      "codigo": "00003"
+    },
+    {
+      "nombre": "Palencia",
+      "codigo": "00004"
+    },
+    {
+      "nombre": "Salamanca",
+      "codigo": "00005"
+    },
+    {
+      "nombre": "Segovia",
+      "codigo": "00006"
+    },
+    {
+      "nombre": "Soria",
+      "codigo": "00007"
+    },
+    {
+      "nombre": "Valladolid",
+      "codigo": "00008"
+    },
+    {
+      "nombre": "Zamora",
+      "codigo": "00009"
+    },
+    {
+      "nombre": "A Coruña",
+      "codigo": "00010"
+    },
+    {
+      "nombre": "Lugo",
+      "codigo": "00011"
+    },
+    {
+      "nombre": "Ourense",
+      "codigo": "00012"
+    },
+    {
+      "nombre": "Pontevedra",
+      "codigo": "00013"
+    }
+  ]
+}
