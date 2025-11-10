@@ -14,7 +14,8 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun MainScreen(
     uiState: UiState,
-    onStartListening: () -> Unit
+    onStartListening: () -> Unit,
+    onGestionarCiudades: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -48,6 +49,15 @@ fun MainScreen(
             isListening = uiState.isListening,
             onClick = onStartListening
         )
+
+        OutlinedButton(
+            onClick = onGestionarCiudades,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+        ) {
+            Text("GESTIONAR CIUDADES", fontSize = 16.sp)
+        }
     }
 }
 

@@ -6,9 +6,6 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
-import java.io.InputStreamReader
 
 data class UiState(
     val isListening: Boolean = false,
@@ -22,7 +19,13 @@ class MainViewModel(private val context: Context) : ViewModel() {
     private val _uiState = mutableStateOf(UiState())
     val uiState: State<UiState> = _uiState
 
-    private val equivalencias: Map<String, String> by lazy { cargarEquivalencias() }
+    private val repository = CiudadesRepository(context)
+
+    // Cargar equivalencias desde el repositorio
+    private fun getEquivalencias(): Map<String, String> {
+        return repository.cargarCiudades()
+            .associate { it.nombre.lowercase() to it.codigo }
+    }
 
     // El usuario pulsó el botón 👺👺👺
     fun startListening() {
@@ -50,6 +53,8 @@ class MainViewModel(private val context: Context) : ViewModel() {
         var palabraEncontrada: String? = null
         var codigoEncontrado: String? = null
 
+        val equivalencias = getEquivalencias()
+
         Log.d("SpeechDebug", "Texto recibido de Google: '$textoReconocido'")
         Log.d("SpeechDebug", "Claves en el mapa: ${equivalencias.keys}")
 
@@ -75,28 +80,6 @@ class MainViewModel(private val context: Context) : ViewModel() {
                 codigoEncontrado = "---",
                 errorMessage = "Palabra no encontrada en la base de datos."
             )
-        }
-    }
-
-    // La carga del JSON no cambia
-    private fun cargarEquivalencias(): Map<String, String> {
-        return try {
-            context.assets.open("equivalencias.json").use { inputStream ->
-                InputStreamReader(inputStream).use { reader ->
-                    val wrapperType = object : TypeToken<Map<String, List<Ubicacion>>>() {}.type
-                    val wrapper: Map<String, List<Ubicacion>> = Gson().fromJson(reader, wrapperType)
-                    wrapper["ubicaciones"]
-                        ?.associate { it.nombre.lowercase() to it.codigo }
-                        ?: emptyMap()
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("CargaJSON", "Error fatal al leer o parsear equivalencias.json", e)
-
-            _uiState.value = _uiState.value.copy(
-                errorMessage = "Error al cargar el archivo JSON. Revisa Logcat."
-            )
-            emptyMap()
         }
     }
 }

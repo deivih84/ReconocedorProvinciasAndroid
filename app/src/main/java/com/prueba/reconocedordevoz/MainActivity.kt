@@ -11,15 +11,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModelProvider
 import com.prueba.reconocedordevoz.ui.theme.ReconocedorDeVozTheme
 
-import java.util.*
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var viewModel: MainViewModel
+    private lateinit var ciudadesViewModel: CiudadesViewModel
 
     private val speechRecognizerLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -47,6 +50,9 @@ class MainActivity : ComponentActivity() {
         val viewModelFactory = MainViewModelFactory(applicationContext)
         viewModel = ViewModelProvider(this, viewModelFactory)[MainViewModel::class.java]
 
+        val ciudadesViewModelFactory = CiudadesViewModelFactory(applicationContext)
+        ciudadesViewModel = ViewModelProvider(this, ciudadesViewModelFactory)[CiudadesViewModel::class.java]
+
         requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
 
         setContent {
@@ -55,15 +61,49 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
+                    var mostrarGestionCiudades by remember { mutableStateOf(false) }
                     val uiState by viewModel.uiState
+                    val ciudadesUiState by ciudadesViewModel.uiState
 
-                    MainScreen(
-                        uiState = uiState,
-                        onStartListening = {
-                            viewModel.startListening() // Avisa al ViewModel que empezamos
-                            launchSpeechRecognizer()   // Lanza la UI de Google
+                    if (mostrarGestionCiudades) {
+                        CiudadesScreen(
+                            uiState = ciudadesUiState,
+                            onAñadirCiudad = { ciudadesViewModel.mostrarDialogoAñadir() },
+                            onEditarCiudad = { ciudad -> ciudadesViewModel.mostrarDialogoEditar(ciudad) },
+                            onEliminarCiudad = { nombre -> ciudadesViewModel.eliminarCiudad(nombre) },
+                            onVolverAtras = { mostrarGestionCiudades = false },
+                            onLimpiarMensaje = { ciudadesViewModel.limpiarMensaje() }
+                        )
+
+                        // Diálogos
+                        if (ciudadesUiState.mostrarDialogoAñadir) {
+                            DialogoAñadirCiudad(
+                                onDismiss = { ciudadesViewModel.ocultarDialogoAñadir() },
+                                onConfirmar = { nombre, codigo ->
+                                    ciudadesViewModel.añadirCiudad(nombre, codigo)
+                                }
+                            )
                         }
-                    )
+
+                        if (ciudadesUiState.mostrarDialogoEditar && ciudadesUiState.ciudadAEditar != null) {
+                            DialogoEditarCiudad(
+                                ciudad = ciudadesUiState.ciudadAEditar!!,
+                                onDismiss = { ciudadesViewModel.ocultarDialogoEditar() },
+                                onConfirmar = { nombreAntiguo, nombreNuevo, codigoNuevo ->
+                                    ciudadesViewModel.actualizarCiudad(nombreAntiguo, nombreNuevo, codigoNuevo)
+                                }
+                            )
+                        }
+                    } else {
+                        MainScreen(
+                            uiState = uiState,
+                            onStartListening = {
+                                viewModel.startListening()
+                                launchSpeechRecognizer()
+                            },
+                            onGestionarCiudades = { mostrarGestionCiudades = true }
+                        )
+                    }
                 }
             }
         }
