@@ -6,6 +6,13 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.io.InputStreamReader
 
+/**
+ * Repositorio encargado de gestionar la persistencia de los datos de las ciudades.
+ * Utiliza SharedPreferences para almacenar la lista de ciudades editada por el usuario
+ * y carga un JSON inicial desde los assets si es la primera vez que se ejecuta.
+ *
+ * @property context El contexto de la aplicación, necesario para acceder a SharedPreferences y Assets.
+ */
 class CiudadesRepository(private val context: Context) {
 
     private val prefs = context.getSharedPreferences("ciudades_prefs", Context.MODE_PRIVATE)
@@ -16,7 +23,12 @@ class CiudadesRepository(private val context: Context) {
         private const val KEY_INITIALIZED = "initialized"
     }
 
-    // Cargar ciudades (primero de SharedPreferences, si no existe, del JSON)
+    /**
+     * Carga la lista de ciudades almacenada.
+     * Si es la primera ejecución, inicializa los datos desde el archivo 'equivalencias.json' en assets.
+     *
+     * @return Una lista de objetos [Ubicacion].
+     */
     fun cargarCiudades(): List<Ubicacion> {
         val isInitialized = prefs.getBoolean(KEY_INITIALIZED, false)
 
@@ -38,13 +50,21 @@ class CiudadesRepository(private val context: Context) {
         }
     }
 
-    // Guardar ciudades en SharedPreferences
+    /**
+     * Guarda la lista de ciudades en SharedPreferences serializada como JSON.
+     *
+     * @param ciudades La lista de objetos [Ubicacion] a guardar.
+     */
     fun guardarCiudades(ciudades: List<Ubicacion>) {
         val json = gson.toJson(ciudades)
         prefs.edit().putString(KEY_CIUDADES, json).apply()
     }
 
-    // Cargar desde el archivo JSON de assets (solo primera vez)
+    /**
+     * Carga los datos iniciales desde el archivo JSON en assets.
+     *
+     * @return Lista inicial de [Ubicacion] o una lista vacía en caso de error.
+     */
     private fun cargarDesdeAssets(): List<Ubicacion> {
         return try {
             context.assets.open("equivalencias.json").use { inputStream ->
@@ -60,7 +80,13 @@ class CiudadesRepository(private val context: Context) {
         }
     }
 
-    // Añadir una nueva ciudad
+    /**
+     * Añade una nueva ciudad al repositorio.
+     * No permite duplicados basados en el nombre (case-insensitive).
+     *
+     * @param ciudad La nueva [Ubicacion] a añadir.
+     * @return `true` si se añadió correctamente, `false` si ya existía.
+     */
     fun añadirCiudad(ciudad: Ubicacion): Boolean {
         val ciudades = cargarCiudades().toMutableList()
         // Verificar que no exista ya
@@ -72,7 +98,13 @@ class CiudadesRepository(private val context: Context) {
         return true
     }
 
-    // Actualizar una ciudad existente
+    /**
+     * Actualiza los datos de una ciudad existente.
+     *
+     * @param nombreAntiguo El nombre original de la ciudad a modificar.
+     * @param ciudadNueva El objeto [Ubicacion] con los nuevos datos.
+     * @return `true` si la ciudad existía y fue actualizada, `false` en caso contrario.
+     */
     fun actualizarCiudad(nombreAntiguo: String, ciudadNueva: Ubicacion): Boolean {
         val ciudades = cargarCiudades().toMutableList()
         val index = ciudades.indexOfFirst { it.nombre.equals(nombreAntiguo, ignoreCase = true) }
@@ -83,7 +115,12 @@ class CiudadesRepository(private val context: Context) {
         return true
     }
 
-    // Eliminar una ciudad
+    /**
+     * Elimina una ciudad por su nombre.
+     *
+     * @param nombre El nombre de la ciudad a eliminar.
+     * @return `true` si la ciudad fue encontrada y eliminada.
+     */
     fun eliminarCiudad(nombre: String): Boolean {
         val ciudades = cargarCiudades().toMutableList()
         val removed = ciudades.removeIf { it.nombre.equals(nombre, ignoreCase = true) }

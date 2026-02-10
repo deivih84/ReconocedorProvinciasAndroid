@@ -19,11 +19,22 @@ import androidx.lifecycle.ViewModelProvider
 import com.prueba.reconocedordevoz.ui.theme.ReconocedorDeVozTheme
 
 
+/**
+ * Actividad principal de la aplicación.
+ *
+ * Se encarga de la configuración inicial, gestión de permisos, navegación entre pantallas (MainScreen y CiudadesScreen)
+ * y el lanzamiento del Intent de reconocimiento de voz de Google.
+ */
 class MainActivity : ComponentActivity() {
 
     private lateinit var viewModel: MainViewModel
     private lateinit var ciudadesViewModel: CiudadesViewModel
+    private lateinit var appPreferences: AppPreferencesRepository
 
+    /**
+     * Launcher para recibir el resultado del reconocimiento de voz de Google.
+     * Procesa el resultado en [MainViewModel].
+     */
     private val speechRecognizerLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
@@ -36,17 +47,21 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-    // Lanzador para el permiso de micrófono (sigue siendo necesario)
+    /**
+     * Launcher para solicitar permiso de micrófono.
+     * Muestra un mensaje de error si el permiso es denegado.
+     */
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (!isGranted) {
-                // TODO Manejar el caso de permiso denegado
+                viewModel.setErrorMessage("Permiso de micrófono necesario para el reconocimiento de voz.")
             }
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        appPreferences = AppPreferencesRepository(applicationContext)
         val viewModelFactory = MainViewModelFactory(applicationContext)
         viewModel = ViewModelProvider(this, viewModelFactory)[MainViewModel::class.java]
 
@@ -61,54 +76,69 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
+                    var showOnboarding by remember { mutableStateOf(!appPreferences.isOnboardingCompleted()) }
                     var mostrarGestionCiudades by remember { mutableStateOf(false) }
+                    
                     val uiState by viewModel.uiState
                     val ciudadesUiState by ciudadesViewModel.uiState
 
-                    if (mostrarGestionCiudades) {
-                        CiudadesScreen(
-                            uiState = ciudadesUiState,
-                            onAñadirCiudad = { ciudadesViewModel.mostrarDialogoAñadir() },
-                            onEditarCiudad = { ciudad -> ciudadesViewModel.mostrarDialogoEditar(ciudad) },
-                            onEliminarCiudad = { nombre -> ciudadesViewModel.eliminarCiudad(nombre) },
-                            onVolverAtras = { mostrarGestionCiudades = false },
-                            onLimpiarMensaje = { ciudadesViewModel.limpiarMensaje() }
-                        )
+                    when {
+                        showOnboarding -> {
+                            OnboardingScreen(onFinished = {
+                                appPreferences.setOnboardingCompleted()
+                                showOnboarding = false
+                            })
+                        }
+                        mostrarGestionCiudades -> {
+                            CiudadesScreen(
+                                uiState = ciudadesUiState,
+                                onAñadirCiudad = { ciudadesViewModel.mostrarDialogoAñadir() },
+                                onEditarCiudad = { ciudad -> ciudadesViewModel.mostrarDialogoEditar(ciudad) },
+                                onEliminarCiudad = { nombre -> ciudadesViewModel.eliminarCiudad(nombre) },
+                                onVolverAtras = { mostrarGestionCiudades = false },
+                                onLimpiarMensaje = { ciudadesViewModel.limpiarMensaje() }
+                            )
 
-                        // Diálogos
-                        if (ciudadesUiState.mostrarDialogoAñadir) {
-                            DialogoAñadirCiudad(
-                                onDismiss = { ciudadesViewModel.ocultarDialogoAñadir() },
-                                onConfirmar = { nombre, codigo ->
-                                    ciudadesViewModel.añadirCiudad(nombre, codigo)
-                                }
+                            // Diálogos
+                            if (ciudadesUiState.mostrarDialogoAñadir) {
+                                DialogoAñadirCiudad(
+                                    onDismiss = { ciudadesViewModel.ocultarDialogoAñadir() },
+                                    onConfirmar = { nombre, codigo ->
+                                        ciudadesViewModel.añadirCiudad(nombre, codigo)
+                                    }
+                                )
+                            }
+
+                            if (ciudadesUiState.mostrarDialogoEditar && ciudadesUiState.ciudadAEditar != null) {
+                                DialogoEditarCiudad(
+                                    ciudad = ciudadesUiState.ciudadAEditar!!,
+                                    onDismiss = { ciudadesViewModel.ocultarDialogoEditar() },
+                                    onConfirmar = { nombreAntiguo, nombreNuevo, codigoNuevo ->
+                                        ciudadesViewModel.actualizarCiudad(nombreAntiguo, nombreNuevo, codigoNuevo)
+                                    }
+                                )
+                            }
+                        }
+                        else -> {
+                            MainScreen(
+                                uiState = uiState,
+                                onStartListening = {
+                                    viewModel.startListening()
+                                    launchSpeechRecognizer()
+                                },
+                                onGestionarCiudades = { mostrarGestionCiudades = true }
                             )
                         }
-
-                        if (ciudadesUiState.mostrarDialogoEditar && ciudadesUiState.ciudadAEditar != null) {
-                            DialogoEditarCiudad(
-                                ciudad = ciudadesUiState.ciudadAEditar!!,
-                                onDismiss = { ciudadesViewModel.ocultarDialogoEditar() },
-                                onConfirmar = { nombreAntiguo, nombreNuevo, codigoNuevo ->
-                                    ciudadesViewModel.actualizarCiudad(nombreAntiguo, nombreNuevo, codigoNuevo)
-                                }
-                            )
-                        }
-                    } else {
-                        MainScreen(
-                            uiState = uiState,
-                            onStartListening = {
-                                viewModel.startListening()
-                                launchSpeechRecognizer()
-                            },
-                            onGestionarCiudades = { mostrarGestionCiudades = true }
-                        )
                     }
                 }
             }
         }
     }
 
+    /**
+     * Lanza el Intent para el reconocimiento de voz de Google.
+     * Maneja excepciones si el servicio no está disponible en el dispositivo.
+     */
     private fun launchSpeechRecognizer() {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
@@ -118,8 +148,7 @@ class MainActivity : ComponentActivity() {
         try {
             speechRecognizerLauncher.launch(intent)
         } catch (e: Exception) {
-            // TODO Manejar el caso de que el reconocimiento de voz no esté disponible en el dispositivo
-            viewModel.processSpeechResult(null)
+            viewModel.setErrorMessage("Error: Reconocimiento de voz no disponible.")
             e.printStackTrace()
         }
     }

@@ -16,6 +16,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+/**
+ * Pantalla para la gestión (CRUD) de ciudades.
+ * Permite listar, añadir, editar y eliminar ciudades de la base de datos local.
+ *
+ * @param uiState Estado actual de la lista de ciudades y diálogos.
+ * @param onAñadirCiudad Callback para abrir el diálogo de añadir.
+ * @param onEditarCiudad Callback para abrir el diálogo de edición con una ciudad seleccionada.
+ * @param onEliminarCiudad Callback para eliminar una ciudad por su nombre.
+ * @param onVolverAtras Callback para navegar de regreso a la pantalla principal.
+ * @param onLimpiarMensaje Callback para limpiar mensajes temporales (Snackbars).
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CiudadesScreen(
@@ -93,6 +104,14 @@ fun CiudadesScreen(
     }
 }
 
+/**
+ * Elemento de lista que representa una ciudad.
+ * Incluye botones para editar y eliminar.
+ *
+ * @param ciudad Datos de la ciudad a mostrar.
+ * @param onEditar Acción al pulsar editar.
+ * @param onEliminar Acción al pulsar eliminar.
+ */
 @Composable
 fun CiudadItem(
     ciudad: Ubicacion,
@@ -169,6 +188,12 @@ fun CiudadItem(
     }
 }
 
+/**
+ * Diálogo modal para añadir una nueva ciudad.
+ *
+ * @param onDismiss Acción al cancelar.
+ * @param onConfirmar Acción al confirmar, recibe (nombre, código).
+ */
 @Composable
 fun DialogoAñadirCiudad(
     onDismiss: () -> Unit,
@@ -218,6 +243,13 @@ fun DialogoAñadirCiudad(
     )
 }
 
+/**
+ * Diálogo modal para editar una ciudad existente.
+ *
+ * @param ciudad La ciudad con los datos actuales.
+ * @param onDismiss Acción al cancelar.
+ * @param onConfirmar Acción al confirmar, recibe (nombreAntiguo, nombreNuevo, codigoNuevo).
+ */
 @Composable
 fun DialogoEditarCiudad(
     ciudad: Ubicacion,

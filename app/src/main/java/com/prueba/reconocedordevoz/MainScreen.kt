@@ -1,83 +1,156 @@
 package com.prueba.reconocedordevoz
 
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+/**
+ * Pantalla principal de la aplicación.
+ * Muestra el estado actual del reconocimiento de voz y los resultados obtenidos.
+ *
+ * @param uiState Estado actual de la UI (palabra reconocida, código, errores, etc.).
+ * @param onStartListening Acción a ejecutar cuando se pulsa el botón de escuchar.
+ * @param onGestionarCiudades Acción a ejecutar para navegar a la pantalla de gestión de ciudades.
+ */
 @Composable
 fun MainScreen(
     uiState: UiState,
     onStartListening: () -> Unit,
     onGestionarCiudades: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceAround
-    ) {
-        Header()
-        ResultDisplay(
-            palabra = uiState.palabraReconocida,
-            codigo = uiState.codigoEncontrado
-        )
-
-        val statusMessage = if (uiState.isListening) {
-            "Esperando resultado de Google..."
-        } else {
-            "Pulsa el botón para hablar"
+    Scaffold(
+        floatingActionButton = {
+            SmallFloatingActionButton(
+                onClick = onGestionarCiudades,
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(Icons.Filled.Settings, contentDescription = "Gestionar Ciudades")
+            }
         }
-        StatusText(message = statusMessage)
-
-        if (uiState.errorMessage != null) {
-            Text(
-                text = uiState.errorMessage,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-        }
-
-        ListenButton(
-            isListening = uiState.isListening,
-            onClick = onStartListening
-        )
-
-        OutlinedButton(
-            onClick = onGestionarCiudades,
+    ) { padding ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
+                .fillMaxSize()
+                .padding(padding)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("GESTIONAR CIUDADES", fontSize = 16.sp)
+            Header()
+
+            ResultDisplay(
+                palabra = uiState.palabraReconocida,
+                codigo = uiState.codigoEncontrado
+            )
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                if (uiState.errorMessage != null) {
+                    Text(
+                        text = uiState.errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }
+
+                StatusText(
+                    message = if (uiState.isListening) "Te escucho..." else "Listo para empezar"
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                ListenButton(
+                    isListening = uiState.isListening,
+                    onClick = onStartListening
+                )
+            }
+            
+            // Espacio extra inferior para equilibrar visualmente
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
-// Solo depende de un booleano, on god🌹
+/**
+ * Botón principal para activar la escucha con animación de pulsación.
+ *
+ * @param isListening Indica si actualmente se está escuchando (activa la animación).
+ * @param onClick Acción al pulsar.
+ */
 @Composable
 fun ListenButton(isListening: Boolean, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        enabled = !isListening,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(60.dp)
-    ) {
-        Text(
-            text = if (isListening) "ESCUCHANDO..." else "PULSA PARA HABLAR",
-            fontSize = 18.sp
-        )
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = if (isListening) 1.15f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    )
+
+    Box(contentAlignment = Alignment.Center) {
+        if (isListening) {
+            // Círculo de fondo que expande para efecto de onda
+            Box(
+                modifier = Modifier
+                    .size(180.dp)
+                    .scale(scale)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+            )
+        }
+        
+        Button(
+            onClick = onClick,
+            enabled = !isListening,
+            shape = CircleShape,
+            modifier = Modifier
+                .size(160.dp)
+                .scale(if (isListening) 1f else 1f), // Mantenemos el botón estable, la onda es externa
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = 8.dp,
+                pressedElevation = 2.dp
+            )
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    imageVector = Icons.Filled.Mic,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = if (isListening) "OYENDO..." else "HABLAR",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+            }
+        }
     }
 }
 
+/**
+ * Cabecera de la aplicación.
+ */
 @Composable
 fun Header() {
     Text(
@@ -87,6 +160,12 @@ fun Header() {
     )
 }
 
+/**
+ * Componente que muestra el resultado del reconocimiento.
+ *
+ * @param palabra La palabra que se ha reconocido.
+ * @param codigo El código asociado encontrado.
+ */
 @Composable
 fun ResultDisplay(palabra: String, codigo: String) {
     Card(
@@ -123,6 +202,10 @@ fun ResultDisplay(palabra: String, codigo: String) {
     }
 }
 
+/**
+ * Muestra el estado textual actual.
+ * @param message El mensaje a mostrar.
+ */
 @Composable
 fun StatusText(message: String) {
     Text(
